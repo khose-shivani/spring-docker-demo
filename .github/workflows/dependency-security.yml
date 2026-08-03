@@ -2,84 +2,97 @@ name: Trivy Dependency Scan
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
-      - master
-  pull_request:
+      - main
+      - develop
 
 permissions:
   contents: read
   security-events: write
 
 jobs:
-  trivy-dependency-scan:
+  dependency-scan:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect dependency manifests
-        id: detect
-        shell: bash
+      ####################################################
+      # Java Projects
+      ####################################################
+
+      - name: Set up Java
+        if: hashFiles('**/pom.xml', '**/build.gradle', '**/build.gradle.kts') != ''
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Resolve Maven dependencies
+        if: hashFiles('**/pom.xml') != ''
+        run: mvn -B dependency:go-offline
+
+      - name: Resolve Gradle dependencies
+        if: hashFiles('**/gradlew') != ''
         run: |
-          echo "Searching for supported dependency manifests..."
+          chmod +x gradlew
+          ./gradlew dependencies
 
-          find . -type f \( \
-            -name "pom.xml" \
-            -o -name "build.gradle" \
-            -o -name "build.gradle.kts" \
-            -o -name "settings.gradle" \
-            -o -name "settings.gradle.kts" \
-            -o -name "package.json" \
-            -o -name "package-lock.json" \
-            -o -name "yarn.lock" \
-            -o -name "pnpm-lock.yaml" \
-            -o -name "requirements.txt" \
-            -o -name "poetry.lock" \
-            -o -name "Pipfile.lock" \
-            -o -name "go.mod" \
-            -o -name "Cargo.toml" \
-            -o -name "composer.lock" \
-            -o -name "Gemfile.lock" \
-            -o -name "*.csproj" \
-          \) | tee dependency-files.txt
+      ####################################################
+      # Node Projects
+      ####################################################
 
-          if [ ! -s dependency-files.txt ]; then
-            echo "No supported dependency manifests found."
-            exit 1
-          fi
+      - name: Set up Node.js
+        if: hashFiles('**/package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
 
-          echo "Detected dependency manifests:"
-          cat dependency-files.txt
+      - name: Install npm dependencies
+        if: hashFiles('**/package-lock.json') != ''
+        run: npm ci
 
-      - name: Run Trivy Scan (Table)
-        uses: aquasecurity/trivy-action@master
+      - name: Install Yarn dependencies
+        if: hashFiles('**/yarn.lock') != ''
+        run: |
+          corepack enable
+          yarn install --immutable
+
+      - name: Install pnpm dependencies
+        if: hashFiles('**/pnpm-lock.yaml') != ''
+        run: |
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+
+      ####################################################
+      # Trivy Scans
+      ####################################################
+
+      - name: Trivy Scan (Table)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln
           format: table
           output: trivy-report.txt
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
-      - name: Run Trivy Scan (JSON)
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy Scan (JSON)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln
           format: json
           output: trivy-report.json
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
-      - name: Run Trivy Scan (SARIF)
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy Scan (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln
           format: sarif
           output: trivy-report.sarif
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-
