@@ -79,24 +79,35 @@ jobs:
           scan-ref: .
           format: table
           output: trivy-report.txt
-
-      - name: Trivy Scan (JSON)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: json
-          output: trivy-report.json
-
-      - name: Trivy Scan (SARIF)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: sarif
-          output: trivy-report.sarif
           
       - name: Display Trivy Report
         run: |
           echo "===== Trivy Dependency Report ====="
           cat trivy-report.txt
+          
+      - name: Send Trivy Report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: khoseshivani@gmail.com
+          password: jazw zfie mlql crea
+          secure: true
+
+          subject: |
+            Trivy Scan Report - ${{ github.repository }}
+
+          to: ${{ secrets.EMAIL_TO }}
+          from: GitHub Actions
+
+          body: |
+            Repository : ${{ github.repository }}
+            Branch     : ${{ github.ref_name }}
+            Commit     : ${{ github.sha }}
+
+            Trivy dependency scan has completed.
+
+            Please find the attached reports.
+
+          attachments: |
+            trivy-report.txt
