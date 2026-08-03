@@ -95,3 +95,8 @@ jobs:
           scan-ref: .
           format: sarif
           output: trivy-report.sarif
+          
+      - name: Display Trivy Report
+        run: |
+          echo "===== Trivy Dependency Report ====="
+          cat trivy-report.txt
