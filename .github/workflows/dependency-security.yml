@@ -80,11 +80,6 @@ jobs:
           format: table
           output: trivy-report.txt
           
-      - name: Display Trivy Report
-        run: |
-          echo "===== Trivy Dependency Report ====="
-          cat trivy-report.txt
-          
       - name: Send Trivy Report
         uses: dawidd6/action-send-mail@v3
         with:
@@ -97,7 +92,7 @@ jobs:
           subject: |
             Trivy Scan Report - ${{ github.repository }}
 
-          to: ${{ secrets.EMAIL_TO }}
+          to: khoseshivani@gmail.com
           from: GitHub Actions
 
           body: |
