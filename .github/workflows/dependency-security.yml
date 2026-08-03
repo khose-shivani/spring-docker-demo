@@ -64,7 +64,7 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
       - name: Run Trivy Scan (JSON)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
@@ -74,7 +74,7 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
       - name: Run Trivy Scan (SARIF)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
@@ -83,12 +83,3 @@ jobs:
           output: trivy-report.sarif
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
-      - name: Upload Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-dependency-reports
-          path: |
-            dependency-files.txt
-            trivy-report.txt
-            trivy-report.json
-            trivy-report.sarif
